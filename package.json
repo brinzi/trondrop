@@ -1,0 +1,17 @@
+{
+  "name": "trondrop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "run": "ts-node ./airdrop.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  },
+  "dependencies": {
+    "@types/node": "^18.15.5",
+    "csv-parser": "^3.0.0",
+    "tronweb": "^5.1.0"
+  }
+}
