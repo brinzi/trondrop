@@ -4,9 +4,14 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node ./airdrop.ts"
+    "start": "ts-node ./airdrop.ts",
+    "build": "tsc  -p ./tsconfig.json ",
+    "package:win": "bash build.sh win",
+    "package:linux": "bash build.sh linux",
+    "package:mac": "bash build.sh mac"
   },
   "devDependencies": {
+    "nexe": "^4.0.0-rc.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"
   },
