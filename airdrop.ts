@@ -23,20 +23,22 @@ async function sendTokens(csvFile: string, privateKey: string, tokenId: string) 
         .on('data', async (row) => {
             console.log(row)
             const recipient = row.address;
-            const amount = parseInt(row.balance);
+            const amount = Number(row.balance);
 
             try {
                 let contract = await tronWeb.contract().at(tokenId);
+                const decimals = await contract.methods.decimals().call();
                 // const transaction = await tronWeb.transactionBuilder.sendToken(recipient, amount, tokenId);
                 // const signedTransaction = await tronWeb.trx.sign(transaction);
                 // const result = await tronWeb.trx.broadcast(signedTransaction);
 
+                console.log(decimals, amount,amount * (10 ** +decimals));
                 let result = await contract.transfer(
                     recipient, //address _to
-                    amount   //amount
+                    amount * (10 ** +decimals)   //amount
                 ).send().then(output => { console.log('- Output:', output, '\n'); });
 
-                console.log(`Transaction to ${recipient} for ${amount} tokens:`, result);
+                console.log(`Transaction to ${recipient} for ${amount * (10 ** +decimals)  } tokens:`, result);
             } catch (e) {
                 console.log(`Error sending tokens to ${recipient}:`, e);
             }
