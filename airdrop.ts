@@ -1,50 +1,81 @@
 import csv from 'csv-parser';
 import TronWeb from 'tronweb';
-import { createReadStream } from "fs";
+import { appendFileSync, createReadStream } from "fs";
 
 import * as secrets from "./secrets.json"
 
-async function sendTokens(csvFile: string, privateKey: string, tokenId: string) {
-    const fullNode = 'https://api.nileex.io/';
-    const solidityNode = 'https://api.nileex.io';
-    const eventServer = 'https://event.nileex.io';
 
-    const tronWeb = new TronWeb({
+let contract;
+let decimals;
+
+const fullNode =     'https://api.trongrid.io';
+const solidityNode = 'https://api.trongrid.io';
+const eventServer =  'https://api.trongrid.io';
+
+let web3;
+
+const init = async (privateKey: string, contractAddress: string) => {
+    web3 = new TronWeb({
         fullNode,
         solidityNode,
         eventServer,
         privateKey
-    });
+    })
 
-    const defaultAddress = tronWeb.address.fromPrivateKey(privateKey);
+    const defaultAddress = web3.address.fromPrivateKey(privateKey);
+    appendFileSync('result.csv', `\naddress,balance,txid`)
+    contract = await web3.contract().at(contractAddress);
+    decimals = await contract.methods.decimals().call();
+
     console.log(privateKey, defaultAddress);
-    createReadStream(csvFile)
-        .pipe(csv())
-        .on('data', async (row) => {
-            console.log(row)
-            const recipient = row.address;
-            const amount = Number(row.balance);
+};
 
+function sendTokens(recipient: string, amount: number) {
+    let errorCount = 0;
+    return new Promise((res, rej) => {
+        const send = async () => {
             try {
-                let contract = await tronWeb.contract().at(tokenId);
-                const decimals = await contract.methods.decimals().call();
-                // const transaction = await tronWeb.transactionBuilder.sendToken(recipient, amount, tokenId);
-                // const signedTransaction = await tronWeb.trx.sign(transaction);
-                // const result = await tronWeb.trx.broadcast(signedTransaction);
-
-                console.log(decimals, amount,amount * (10 ** +decimals));
                 let result = await contract.transfer(
                     recipient, //address _to
                     amount * (10 ** +decimals)   //amount
-                ).send().then(output => { console.log('- Output:', output, '\n'); });
+                ).send().then(output => { console.log('- Output:', output, '\n'); return output});
 
-                console.log(`Transaction to ${recipient} for ${amount * (10 ** +decimals)  } tokens:`, result);
+                console.log(`Transaction to ${recipient} for ${amount * (10 ** +decimals)} tokens:`, result);
+                res(result);
             } catch (e) {
                 console.log(`Error sending tokens to ${recipient}:`, e);
+                console.log(`Retrying in 30 seconds, please wait...`);
+                errorCount++;
+                if (errorCount < 3) {
+                    setTimeout(() => {
+                        send();
+                    }, 31 * 1000)
+                } else {
+                    rej(e);
+                }
             }
-        });
+        }
+
+        send();
+    })
 }
 
 
-console.log("Starting airdrop...");
-sendTokens('./test.csv', (secrets as any).privateKey, 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj');
+const sleep = (ms: any) => new Promise((r) => setTimeout(r, ms));
+
+console.log("Starting airdrop");
+const start = async () => {
+    await init((secrets as any).privateKey, "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t");
+    for await (const row of createReadStream('./test.csv').pipe(csv())) {
+        const recipient = row.address;
+        const amount = Number(row.balance);
+        console.log(`Sending ${amount} to ${recipient}`);
+        const txhash = await sendTokens(recipient, amount);
+        console.log(`Transaction to ${recipient} for ${amount} tokens, DONE`);
+        appendFileSync('result.csv', `\n${recipient},${amount},${txhash}`)
+        await sleep(600);
+    }
+}
+
+
+start();
