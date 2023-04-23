@@ -37,10 +37,10 @@ function sendTokens(recipient: string, amount: number) {
             try {
                 let result = await contract.transfer(
                     recipient, //address _to
-                    amount * (10 ** +decimals)   //amount
+                    +(amount * (10 ** +decimals)).toFixed()   //amount
                 ).send().then(output => { console.log('- Output:', output, '\n'); return output});
 
-                console.log(`Transaction to ${recipient} for ${amount * (10 ** +decimals)} tokens:`, result);
+                console.log(`Transaction to ${recipient} for ${(amount * (10 ** +decimals)).toFixed()} tokens:`, result);
                 res(result);
             } catch (e) {
                 console.log(`Error sending tokens to ${recipient}:`, e);
