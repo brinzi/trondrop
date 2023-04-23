@@ -34,6 +34,8 @@ function sendTokens(recipient: string, amount: number) {
     let errorCount = 0;
     return new Promise((res, rej) => {
         const send = async () => {
+
+            console.log("Sending",amount * (10 ** +decimals) )
             try {
                 let result = await contract.transfer(
                     recipient, //address _to
